@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+
+# Virtualenv
+backend/venv/
+
+# Dataset and large model files
+dataset/
+*.keras
+*.h5
+plant_disease_model.keras
+backend/plant_disease_model.keras
+
+# Node / frontend
+frontend/node_modules/
+dist/
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+
+# Env
+.env
+
+# Jupyter
+.ipynb_checkpoints/
