@@ -134,6 +134,55 @@ DISEASE_INFO = {
     }
 }
 
+# ---------------- MEDICINE INFO ---------------- #
+MEDICINE_INFO = {
+    "Chlorothalonil": {
+        "image": "https://image.made-in-china.com/2f0j00oAlWwqSKSYkG/Chlorothalonil-Fungicide-50-Wp-75-Wp-40-Sc-75-Wdg-97-Tc-72-Sc-50-Sc.webp",
+        "description": "Chlorothalonil is a broad-spectrum fungicide used to control fungal diseases in tomatoes and potatoes.",
+        "purchase_link": "https://m.made-in-china.com/product/Chlorothalonil-Fungicide-50-Wp-75-Wp-40-Sc-75-Wdg-97-Tc-72-Sc-50-Sc-1977058585.html"
+    },
+    "Mancozeb": {
+        "image": "https://5.imimg.com/data5/SELLER/Default/2021/7/QW/GH/SA/6616513/mancozeb-75-wp-contact-fungicide.jpg",
+        "description": "Mancozeb is a protective fungicide widely used to prevent early and late blight diseases.",
+        "purchase_link": "https://www.amazon.in/s?k=mancozeb+fungicide"
+    },
+    "Copper sulfate": {
+        "image": "https://www.greenplusagro.com/wp-content/uploads/2022/04/GP-Copper.jpg",
+        "description": "Copper sulfate is commonly used to treat bacterial and fungal infections in plants.",
+        "purchase_link": "https://www.amazon.in/s?k=copper+sulfate+fungicide"
+    },
+    "Metalaxyl": {
+        "image": "https://5.imimg.com/data5/GG/FL/JQ/SELLER-49180782/ju-metalaxyl-fungicide.png",
+        "description": "Metalaxyl is a systemic fungicide used to control late blight and other oomycete diseases.",
+        "purchase_link": "https://www.amazon.in/s?k=metalaxyl+fungicide"
+    },
+    "Sulfur spray": {
+        "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSfUKJlio4BkJF82R7Y6FvybtQbJISrYnklDg&s",
+        "description": "Sulfur spray is a natural fungicide used to manage powdery mildew and leaf mold in tomatoes and peppers.",
+        "purchase_link": "https://www.amazon.in/s?k=sulfur+spray+fungicide"
+    },
+    "Neem oil": {
+        "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQI7_0WrTC_cIhwgkED-uWts0R1jiFi5yvqvA&s",
+        "description": "Neem oil is a botanical insecticide and fungicide commonly used to control pests and fungal infections.",
+        "purchase_link": "https://www.amazon.in/s?k=neem+oil+plant"
+    },
+    "Insecticide": {
+        "image": "https://www.katyayaniorganics.com/wp-content/uploads/2022/06/Pyrethrum-2_-Extract_resize-1.png",
+        "description": "A broad-spectrum insecticide helps control sap-sucking pests like whiteflies and aphids.",
+        "purchase_link": "https://www.amazon.in/s?k=plant+insecticide"
+    },
+    "No treatment needed": {
+        "image": "",
+        "description": "No treatment is needed at this time. Keep monitoring plant health and maintain good cultural practices.",
+        "purchase_link": ""
+    },
+    "No chemical cure": {
+        "image": "",
+        "description": "There is no chemical cure for this disease; remove infected plants and focus on prevention and sanitation.",
+        "purchase_link": ""
+    }
+}
+
 
 # ---------------- MODEL LOADER ---------------- #
 
@@ -193,6 +242,8 @@ def predict_disease(image_path: str) -> Dict[str, Any]:
         predicted_class = CLASS_LIST[predicted_idx]
 
         class_data = DISEASE_INFO.get(predicted_class, {})
+        medicine = class_data.get("medicine", "")
+        medicine_info = MEDICINE_INFO.get(medicine, {})
 
         return {
             "success": True,
@@ -200,7 +251,10 @@ def predict_disease(image_path: str) -> Dict[str, Any]:
             "predicted_class_display": class_data.get("display_name", predicted_class),
             "confidence": round(confidence, 4),
             "treatment": class_data.get("treatment", ""),
-            "medicine": class_data.get("medicine", "")
+            "medicine": medicine,
+            "medicine_image": medicine_info.get("image", ""),
+            "medicine_description": medicine_info.get("description", ""),
+            "medicine_purchase_link": medicine_info.get("purchase_link", "")
         }
 
     except Exception as e:
@@ -211,7 +265,10 @@ def predict_disease(image_path: str) -> Dict[str, Any]:
             "predicted_class": None,
             "confidence": 0.0,
             "treatment": "",
-            "medicine": ""
+            "medicine": "",
+            "medicine_image": "",
+            "medicine_description": "",
+            "medicine_purchase_link": ""
         }
 
 

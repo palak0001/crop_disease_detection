@@ -64,6 +64,7 @@ export const Predict = () => {
       formData.append('file', file);
 
       const response = await predictionAPI.predict(formData);
+      console.log('Prediction response:', response.data);
       setResult(response.data);
     } catch (err) {
       setError(err.response?.data?.detail || 'Prediction failed. Please try again.');
@@ -305,9 +306,39 @@ export const Predict = () => {
                   className="p-6 bg-orange-50 border-l-4 border-orange-400 rounded-xl"
                 >
                   <h3 className="text-lg font-bold text-gray-800 mb-3">Suggested Medicine</h3>
-                  <p className="text-2xl font-bold text-orange-600">
+
+                  <p className="text-2xl font-bold text-orange-600 mb-4">
                     {result.medicine}
                   </p>
+
+                  {result.medicine_image && (
+                    <div className="flex justify-center mb-4">
+                      <img
+                        src={result.medicine_image}
+                        alt={result.medicine}
+                        className="max-h-48 w-full max-w-xs object-contain rounded-lg shadow-sm"
+                      />
+                    </div>
+                  )}
+
+                  {result.medicine_description && (
+                    <p className="text-gray-700 leading-relaxed mb-4">
+                      {result.medicine_description}
+                    </p>
+                  )}
+
+                  {result.medicine_purchase_link ? (
+                    <div className="flex justify-center">
+                      <a
+                        href={result.medicine_purchase_link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center justify-center px-6 py-3 bg-gradient-green text-white rounded-lg font-semibold hover:shadow-lg transition"
+                      >
+                        Buy Online
+                      </a>
+                    </div>
+                  ) : null}
                 </motion.div>
 
                 {/* Image Preview */}

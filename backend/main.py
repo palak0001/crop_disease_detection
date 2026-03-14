@@ -6,7 +6,7 @@ Main application file with API endpoints
 import os
 import shutil
 from datetime import datetime, timedelta
-from fastapi import FastAPI, File, UploadFile, HTTPException, Depends, status, Header
+from fastapi import FastAPI, File, UploadFile, HTTPException, Depends, status, Header, Request
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -57,11 +57,13 @@ app.add_middleware(
 )
 
 # Create static directory for uploads
-UPLOAD_DIR = "static/uploads"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+STATIC_DIR = os.path.join(BASE_DIR, "static")
+UPLOAD_DIR = os.path.join(STATIC_DIR, "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-# Mount static files
-app.mount("/static", StaticFiles(directory="static"), name="static")
+# Mount static files (serves /static/...)
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 # Initialize database
 init_db()
@@ -92,6 +94,9 @@ class PredictionResponse(BaseModel):
     confidence: float
     treatment: str
     medicine: str
+    medicine_image: Optional[str] = None
+    medicine_description: Optional[str] = None
+    medicine_purchase_link: Optional[str] = None
     prediction_id: int
 
 
@@ -235,6 +240,7 @@ async def login(request: LoginRequest):
 
 @app.post("/predict", response_model=PredictionResponse)
 async def predict(
+    request: Request,
     file: UploadFile = File(...),
     authorization: Optional[str] = Header(None)
 ):
@@ -276,12 +282,31 @@ async def predict(
         )
         print(f"[PREDICT] Prediction saved with ID: {prediction_id}")
         
+        # Ensure medicine image URL is absolute so it loads correctly from the frontend.
+        medicine_image = result.get("medicine_image", "")
+
+        # Hide image for medicines that are not meant to be shown (e.g., no treatment needed)
+        if result.get("medicine", "") in ["No treatment needed", "No chemical cure"]:
+            medicine_image = ""
+
+        if medicine_image and medicine_image.startswith("/static/"):
+            # Use FastAPI's URL generation for mounted static files
+            relative_path = medicine_image[len("/static/"):]
+            try:
+                medicine_image = str(request.url_for("static", path=relative_path))
+            except Exception:
+                # Fallback: build absolute path manually
+                medicine_image = str(request.base_url).rstrip("/") + medicine_image
+
         return {
             "predicted_class": result["predicted_class"],
             "predicted_class_display": result["predicted_class_display"],
             "confidence": result["confidence"],
             "treatment": result["treatment"],
             "medicine": result["medicine"],
+            "medicine_image": medicine_image,
+            "medicine_description": result.get("medicine_description", ""),
+            "medicine_purchase_link": result.get("medicine_purchase_link", ""),
             "prediction_id": prediction_id
         }
     
