@@ -6,8 +6,10 @@ Load and manage Keras model
 import os
 from typing import Dict, Any
 import numpy as np
-from tensorflow.keras.models import load_model
-from tensorflow.keras.preprocessing import image as keras_image
+import tensorflow as tf
+import keras
+from keras.preprocessing import image as keras_image
+
 
 # ---------------- MODEL PATH RESOLUTION ---------------- #
 
@@ -28,93 +30,110 @@ elif os.path.exists(backend_candidate):
 else:
     MODEL_PATH = root_candidate
 
-# Global model instance
 _model = None
 
-# ---------------- CLASS NAMES ---------------- #
 
-CLASS_NAMES = {
-    "Pepper__bell___Bacterial_spot": "Pepper Bell Bacterial Spot",
-    "Pepper__bell___healthy": "Pepper Bell Healthy",
-    "Potato___Early_blight": "Potato Early Blight",
-    "Potato___healthy": "Potato Healthy",
-    "Potato___Late_blight": "Potato Late Blight",
-    "Tomato___Bacterial_spot": "Tomato Bacterial Spot",
-    "Tomato___Early_blight": "Tomato Early Blight",
-    "Tomato___healthy": "Tomato Healthy",
-    "Tomato___Late_blight": "Tomato Late Blight",
-    "Tomato___Leaf_Mold": "Tomato Leaf Mold",
-    "Tomato___Septoria_leaf_spot": "Tomato Septoria Leaf Spot",
-    "Tomato___Spider_mites_Two_spotted_spider_mite": "Tomato Spider Mites",
-    "Tomato___Target_Spot": "Tomato Target Spot",
-    "Tomato___Tomato_mosaic_virus": "Tomato Mosaic Virus",
-    "Tomato___Tomato_YellowLeaf__Curl_Virus": "Tomato Yellow Leaf Curl Virus",
-}
+# ---------------- CLASS LIST (MUST MATCH TRAINING ORDER EXACTLY) ---------------- #
+
+CLASS_LIST = [
+    'Pepper__bell___Bacterial_spot',
+    'Pepper__bell___healthy',
+    'Potato___Early_blight',
+    'Potato___Late_blight',
+    'Potato___healthy',
+    'Tomato_Bacterial_spot',
+    'Tomato_Early_blight',
+    'Tomato_Late_blight',
+    'Tomato_Leaf_Mold',
+    'Tomato_Septoria_leaf_spot',
+    'Tomato_Spider_mites_Two_spotted_spider_mite',
+    'Tomato__Target_Spot',
+    'Tomato__Tomato_YellowLeaf__Curl_Virus',
+    'Tomato__Tomato_mosaic_virus',
+    'Tomato_healthy'
+]
+
 
 # ---------------- DISEASE INFO ---------------- #
 
 DISEASE_INFO = {
     "Pepper__bell___Bacterial_spot": {
-        "treatment": "Remove affected leaves, improve air circulation, apply copper-based fungicides, ensure proper spacing between plants",
-        "medicine": "Copper sulfate, Bordeaux mixture"
+        "display_name": "Pepper Bell Bacterial Spot",
+        "treatment": "Remove affected leaves and apply copper-based fungicides",
+        "medicine": "Copper sulfate"
     },
     "Pepper__bell___healthy": {
-        "treatment": "Maintain regular care, proper watering, and fertilization",
+        "display_name": "Pepper Bell Healthy",
+        "treatment": "Maintain proper care",
         "medicine": "No treatment needed"
     },
     "Potato___Early_blight": {
-        "treatment": "Remove affected leaves, improve drainage, maintain proper spacing, apply fungicide early in season",
-        "medicine": "Mancozeb, Chlorothalonil, Azoxystrobin"
-    },
-    "Potato___healthy": {
-        "treatment": "Continue regular care and monitoring",
-        "medicine": "No treatment needed"
+        "display_name": "Potato Early Blight",
+        "treatment": "Remove infected leaves and apply fungicide",
+        "medicine": "Mancozeb"
     },
     "Potato___Late_blight": {
-        "treatment": "Use resistant varieties, improve air circulation, apply fungicide, avoid overhead watering",
-        "medicine": "Metalaxyl, Chlorothalonil, Fosetyl-Al"
+        "display_name": "Potato Late Blight",
+        "treatment": "Improve air circulation and apply fungicide",
+        "medicine": "Metalaxyl"
     },
-    "Tomato___Bacterial_spot": {
-        "treatment": "Remove infected leaves, improve drainage, use drip irrigation, apply copper-based fungicides",
-        "medicine": "Copper sulfate, Streptomycin"
-    },
-    "Tomato___Early_blight": {
-        "treatment": "Remove lower leaves, improve air circulation, mulch soil, apply fungicide",
-        "medicine": "Mancozeb, Chlorothalonil, Azoxystrobin"
-    },
-    "Tomato___healthy": {
-        "treatment": "Continue regular monitoring and care",
+    "Potato___healthy": {
+        "display_name": "Potato Healthy",
+        "treatment": "Continue monitoring",
         "medicine": "No treatment needed"
     },
-    "Tomato___Late_blight": {
-        "treatment": "Use resistant varieties, avoid overhead watering, apply fungicide preventively",
-        "medicine": "Chlorothalonil, Fosetyl-Al, Metalaxyl-M"
+    "Tomato_Bacterial_spot": {
+        "display_name": "Tomato Bacterial Spot",
+        "treatment": "Remove infected leaves",
+        "medicine": "Copper sulfate"
     },
-    "Tomato___Leaf_Mold": {
-        "treatment": "Improve ventilation, reduce humidity, remove infected leaves, apply fungicide",
-        "medicine": "Chlorothalonil, Sulfur, Triadimefon"
+    "Tomato_Early_blight": {
+        "display_name": "Tomato Early Blight",
+        "treatment": "Remove lower leaves and apply fungicide",
+        "medicine": "Mancozeb"
     },
-    "Tomato___Septoria_leaf_spot": {
-        "treatment": "Remove infected leaves, improve air circulation, apply fungicide, avoid wetting foliage",
-        "medicine": "Mancozeb, Chlorothalonil, Azoxystrobin"
+    "Tomato_Late_blight": {
+        "display_name": "Tomato Late Blight",
+        "treatment": "Avoid overhead watering",
+        "medicine": "Chlorothalonil"
     },
-    "Tomato___Spider_mites_Two_spotted_spider_mite": {
-        "treatment": "Spray water to remove mites, use miticides, release predatory mites, reduce dust",
-        "medicine": "Permethrin, Abamectin, Neem oil"
+    "Tomato_Leaf_Mold": {
+        "display_name": "Tomato Leaf Mold",
+        "treatment": "Improve ventilation",
+        "medicine": "Sulfur spray"
     },
-    "Tomato___Target_Spot": {
-        "treatment": "Remove infected leaves, improve air circulation, apply fungicide, use resistant varieties",
-        "medicine": "Chlorothalonil, Mancozeb, Azoxystrobin"
+    "Tomato_Septoria_leaf_spot": {
+        "display_name": "Tomato Septoria Leaf Spot",
+        "treatment": "Remove infected leaves",
+        "medicine": "Mancozeb"
     },
-    "Tomato___Tomato_mosaic_virus": {
-        "treatment": "Remove infected plants, control aphids, use virus-free seeds, sanitize tools",
-        "medicine": "No chemical cure, prevention through clean culture"
+    "Tomato_Spider_mites_Two_spotted_spider_mite": {
+        "display_name": "Tomato Spider Mites",
+        "treatment": "Spray water and use miticide",
+        "medicine": "Neem oil"
     },
-    "Tomato___Tomato_YellowLeaf__Curl_Virus": {
-        "treatment": "Control whiteflies, use resistant varieties, remove infected plants, use netting",
-        "medicine": "Insecticide for whitefly control"
+    "Tomato__Target_Spot": {
+        "display_name": "Tomato Target Spot",
+        "treatment": "Remove infected parts",
+        "medicine": "Chlorothalonil"
     },
+    "Tomato__Tomato_YellowLeaf__Curl_Virus": {
+        "display_name": "Tomato Yellow Leaf Curl Virus",
+        "treatment": "Control whiteflies",
+        "medicine": "Insecticide"
+    },
+    "Tomato__Tomato_mosaic_virus": {
+        "display_name": "Tomato Mosaic Virus",
+        "treatment": "Remove infected plants",
+        "medicine": "No chemical cure"
+    },
+    "Tomato_healthy": {
+        "display_name": "Tomato Healthy",
+        "treatment": "Regular care",
+        "medicine": "No treatment needed"
+    }
 }
+
 
 # ---------------- MODEL LOADER ---------------- #
 
@@ -126,7 +145,9 @@ def load_keras_model():
             raise FileNotFoundError(f"Model file not found at {MODEL_PATH}")
 
         print(f"Loading model from {MODEL_PATH}...")
-        _model = load_model(MODEL_PATH, compile=False)
+
+        _model = keras.models.load_model(MODEL_PATH, compile=False)
+
         print("Model loaded successfully!")
 
     return _model
@@ -135,46 +156,55 @@ def load_keras_model():
 # ---------------- IMAGE PREPROCESSING ---------------- #
 
 def preprocess_image(image_path: str, target_size: tuple = (224, 224)) -> np.ndarray:
+
     img = keras_image.load_img(image_path, target_size=target_size)
     img_array = keras_image.img_to_array(img)
-    img_array = img_array / 255.0
+
+    # IMPORTANT
+    # EfficientNet preprocessing already inside model
+    img_array = img_array.astype("float32")
+
     img_array = np.expand_dims(img_array, axis=0)
+
     return img_array
 
 
 # ---------------- PREDICTION ---------------- #
 
 def predict_disease(image_path: str) -> Dict[str, Any]:
+
     try:
+
         model = load_keras_model()
+
         img_array = preprocess_image(image_path)
 
-        predictions = model.predict(img_array, verbose=0)
-        predicted_idx = int(np.argmax(predictions[0]))
-        confidence = float(predictions[0][predicted_idx])
+        raw_predictions = model.predict(img_array, verbose=0)[0]
 
-        class_list = list(CLASS_NAMES.keys())
-        predicted_class = class_list[predicted_idx]
-        predicted_class_display = CLASS_NAMES.get(predicted_class, predicted_class)
+        print("Raw prediction vector:")
+        print(raw_predictions)
 
-        disease_info = DISEASE_INFO.get(
-            predicted_class,
-            {
-                "treatment": "Consult agricultural expert",
-                "medicine": "Unknown"
-            }
-        )
+        probabilities = tf.nn.softmax(raw_predictions).numpy()
+
+        predicted_idx = int(np.argmax(probabilities))
+
+        confidence = float(probabilities[predicted_idx])
+
+        predicted_class = CLASS_LIST[predicted_idx]
+
+        class_data = DISEASE_INFO.get(predicted_class, {})
 
         return {
+            "success": True,
             "predicted_class": predicted_class,
-            "predicted_class_display": predicted_class_display,
-            "confidence": confidence,
-            "treatment": disease_info.get("treatment", ""),
-            "medicine": disease_info.get("medicine", ""),
-            "success": True
+            "predicted_class_display": class_data.get("display_name", predicted_class),
+            "confidence": round(confidence, 4),
+            "treatment": class_data.get("treatment", ""),
+            "medicine": class_data.get("medicine", "")
         }
 
     except Exception as e:
+
         return {
             "success": False,
             "error": str(e),
@@ -185,5 +215,7 @@ def predict_disease(image_path: str) -> Dict[str, Any]:
         }
 
 
-def get_class_names() -> Dict[str, str]:
-    return CLASS_NAMES
+# ---------------- GET CLASS NAMES ---------------- #
+
+def get_class_names():
+    return CLASS_LIST
